@@ -1,0 +1,4 @@
+Flask>=0.8
+twilio>=3.3.6
+requests>=2.5.1
+git+https://github.com/dgrtwo/ParsePy.git
