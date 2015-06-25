@@ -135,13 +135,14 @@ def try_get_alerts(input):
 ####################
 
 # Parse the next X departures for a specific train(inbound/outbound) at a station
-def _next_departures(train_id):
+def _next_departures(train_id, no_trains=3, start_time=0):
     global response_title
     schedule = _get_departures_by_stop(train_id)
 
     response_title = response_title + schedule['stop_name']
 
     departures = {}
+    departure_ids = []
 
     for mode in schedule['mode']:
         if mode['mode_name'] == "Subway":
@@ -153,14 +154,21 @@ def _next_departures(train_id):
 
                 for direction in route['direction']:
                         for trip in direction['trip']:
-                            if len(departures[route_name]) < 3:
-                                departures[route_name].append(int(trip['sch_arr_dt']))
-                            else:
-                                break
+                            while len(departures[route_name]) < no_trains:
+                                if start_time > 0:
+                                    if trip['sch_arr_dt'] < start_time:
+                                        continue
+                                    else:
+                                        departures[route_name].append(int(trip['sch_arr_dt']))
+                                        departure_ids.append(trip['trip_id'])
+                                else:
+                                    departures[route_name].append(int(trip['sch_arr_dt']))
+                                    departure_ids.append(trip['trip_id'])
+
 
         break #don't look past subways
-
-    return departures
+    deps_dict = {"departures": departures, "trip_ids": departure_ids}
+    return deps_dict
 
 
 # Get station_id from common station name (stops.json)
@@ -240,7 +248,7 @@ def _get_departures_by_dir(from_station, direction):
     for station in station_blob['stations']:
         for stop in station['stops']:
             train_id = stop[direction]
-            departures = _next_departures(train_id)
+            departures = _next_departures(train_id)['departures']
 
             if len(departures) > 1 :
                 for key in departures:
@@ -269,14 +277,8 @@ def _get_title(route_id):
 
 def _get_same_line(x, y):
 
-    x_lines = []
-    y_lines = []
-
-    for station in x['stations']:
-        x_lines.append(station['line'])
-
-    for station in y['stations']:
-        y_lines.append(station['line'])
+    x_lines = _get_lines(x)
+    y_lines = _get_lines(y)
 
     line_set = (set(x_lines) & set(y_lines))
     if line_set:
@@ -299,6 +301,79 @@ def _get_pivot_index(line_name):
             return int(line['pivot_idx'])
 
 
+#Get lines available at a station
+def _get_lines(station_blob):
+    lines = []
+
+    for station in station_blob['stations']:
+        lines.append(station['line'])
+
+    return lines
+
+#Get intermediate station to transfer from Station A to Station B (using the blobs of course)
+def _get_transfer(from_st, to_st):
+
+    from_lines = _get_lines(from_st)
+    to_lines = _get_lines(to_st)
+    transfer_station = ""
+    transfer_line = ""
+
+    for aline in from_lines:
+        for bline in to_lines:
+            result = _can_transfer(aline, bline)
+            if result:
+                transfer_station = result
+                transfer_line = aline
+
+    transfer = {"station": transfer_station, "line": transfer_line}
+    return transfer
+
+# Helper for _get_transfer(). Checks for a specific line rather than a list
+def _can_transfer(from_line, to_line):
+
+    with open('lines.json') as stop_file:
+        stop_data = json.load(stop_file)
+
+    for line in stop_data['lines']:
+        if line['name'] == from_line:
+            for transfer in line['transfers']:
+                if to_line in transfer:
+                    return transfer[to_line]
+
+def _get_direction(start_idx, dest_idx, pivot):
+    direction = ""
+
+    if start_idx <= pivot:
+        if start_idx < dest_idx:
+            direction = "inbound"
+        elif start_idx > dest_idx:
+            direction = "outbound"
+
+    elif start_idx > pivot:
+        if start_idx < dest_idx:
+            direction = "outbound"
+        elif start_idx > dest_idx:
+            direction = "inbound"
+
+    return direction
+
+#Returns an key/value dict of the next 3 departures
+def _get_departures_by_dest_helper(start_blob, dest_blob, line, no_departures=3, start_time=0):
+
+    #Get indices
+    start_idx = _get_station_index(start_blob, line)
+    dest_idx = _get_station_index(dest_blob, line)
+    pivot = _get_pivot_index(line)
+
+    direction = _get_direction(start_idx, dest_idx, pivot)
+
+    for station in start_blob['stations']:
+        if station['line'] == line:
+            for stop in station['stops']:
+                train_id = stop[direction]
+                return _next_departures(train_id, no_departures, start_time)
+
+
 #Get the next X departures given the destination
 def _get_departures_by_dest(from_station, dest):
     response = ""
@@ -315,53 +390,75 @@ def _get_departures_by_dest(from_station, dest):
     #print json.dumps(dest_blob, indent=4)
 
     #Check if we need to transfer
-
     line = _get_same_line(start_blob, dest_blob)
-    #Get indices
-    start_idx = _get_station_index(start_blob, line)
-    dest_idx = _get_station_index(dest_blob, line)
-    pivot = _get_pivot_index(line)
 
-    if start_idx <= pivot:
-        if start_idx < dest_idx:
-            direction = "inbound"
-        elif start_idx > dest_idx:
-            direction = "outbound"
+    # We're on different lines...shit
+    if not line:
+        transfer = _get_transfer(start_blob, dest_blob)
+        #print json.dumps(transfer, indent=4)
+        trans_blob = _get_station_blob(transfer['station'])
+        #print json.dumps(trans_blob, indent=4)
 
-    elif start_idx > pivot:
-        if start_idx < dest_idx:
-            direction = "outbound"
-        elif start_idx > dest_idx:
-            direction = "inbound"
+        departures = _get_departures_by_dest_helper(start_blob, trans_blob, transfer['line'])
+        print departures
+        header = from_station + " " + dest + "Transfer"
 
-    for station in start_blob['stations']:
-        if station['line'] == line:
-            for stop in station['stops']:
-                train_id = stop[direction]
-                departures = _next_departures(train_id)
-                #Check if there's more than 1 route
+        for key in departures['departures']:
+            for idx, time in enumerate(departures['departures'][key]):
+                print idx
+                time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+                response = response + "\n" + _transfer(time_str, departures['trip_ids'][idx], trans_blob, dest_blob)
 
-                if len(departures) > 1 :
-                    for key in departures:
-                        title = response_title + " (" + _get_title(key) + ")"
-                        response = response + "\n" + title
-                        for time in departures[key]:
-                            time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
-                            response = response + "\n" + time_str
-                else:
-                    for key in departures:
-                        response = response + response_title
-                        for time in departures[key]:
-                            time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
-                            response = response + "\n" + time_str
+    else:
+        departures = _get_departures_by_dest_helper(start_blob, dest_blob, line)['departures']
+
+        if len(departures) > 1 :
+            for key in departures:
+                title = response_title + " (" + _get_title(key) + ")"
+                response = response + "\n" + title
+                for time in departures[key]:
+                    time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+                    response = response + "\n" + time_str
+        else:
+            for key in departures:
+                response = response + response_title
+                for time in departures[key]:
+                    time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+                    response = response + "\n" + time_str
 
     ##print response
     response_list.append(response)
     print response
     return response_list
 
-# Gets trip arrival time
-# def _get_arrival_time(trip_id, station):
+# Deal with transfers. It's 11am after hackbeanpot..i don't feel like writing documentation
+def _transfer(response, trip_id, trans_station_blob, dest_blob):
+
+    line = _get_same_line(trans_station_blob, dest_blob)
+    trans_arrival = _get_arrival_time(trip_id, trans_station_blob, line)
+
+    #trans_arrival = 1424016720
+    line = _get_same_line(trans_station_blob, dest_blob)
+
+    departures = _get_departures_by_dest_helper(trans_station_blob, dest_blob, line, 1, trans_arrival)['departures']
+
+    for key in departures:
+        for time in departures[key]:
+            time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+            response = response + " | " + time_str
+
+    return response
+
+#Get arrival time of a
+def _get_arrival_time(trip_id, station_blob, line):
+
+    index = _get_station_index(station_blob, line)
+    trip = send_request('schedulebytrip', {'trip':trip_id})
+
+    for stop in trip['stop']:
+        if stop['stop_sequence'] == index:
+            return stop['sch_arr_dt']
+
 
 def main():
     args = _parse_args()
