@@ -3,9 +3,10 @@ import requests
 import json
 import datetime
 import time
+import config
 
 dev_api_key = 'wX9NwuHnZU2ToO7GmGR9uw'
-real_api_key = 'PERSONAL_MBTA_KEY'
+real_api_key = config.real_api_key
 loaded_files = False
 stops = None
 stops_red_line_ashmont = None

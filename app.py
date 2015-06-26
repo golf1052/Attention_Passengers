@@ -8,14 +8,15 @@ from passenger import Message, Passenger, Favorite
 from mbta import *
 import subprocess
 from parse_rest.query import QueryResourceDoesNotExist
+import config
 
 app = Flask(__name__)
 
-account_sid = 'TWILIO_ACCOUNT_SID'
-auth_token = 'TWILIO_AUTH_TOKEN'
-twilio_number = 'TWILIO_NUMBER'
-parse_app = 'PARSE_APP_KEY'
-parse_rest = 'PARSE_REST_KEY'
+account_sid = config.account_sid
+auth_token = config.auth_token
+twilio_number = config.twilio_number
+parse_app = config.parse_app
+parse_rest = config.parse_rest
 
 @app.route('/', methods=['GET', 'POST'])
 def respond():
@@ -33,6 +34,59 @@ def respond():
 
     # get user from parse
     user = check_for_user(message_info)
+
+    if user.fState == "Keyword":
+        # currently setting up keyword
+        tmpKeyword = message_info.body
+        if invalid_favorite(tmpKeyword):
+            # user is a butt, used an invalid word
+            response.message("You can't set " + message_info.body " as a favorite...")
+            return str(response)
+        elif tmpKeyword == "cancel":
+            # canceled favorite creation
+            user.fState = "None"
+            user.save()
+            response.message("Favorite creation canceled")
+            return str(response)
+        else:
+            # got a keyword, save it in the user object (easiest way?)
+            user.fKeyword = message_info.body
+            user.save()
+            response.message("Ok, what's the query?")
+            return str(response)
+    elif user.fState == "Query":
+        # currently setting up query
+        tmpQuery = message_info.body
+        if invalid_favorite(tmpQuery):
+            # user again is a butt
+            response.message("You can't set " + message_info.body " as a query...")
+            return str(response)
+        elif tmpQuery == "cancel":
+            # canceled favorite creation
+            user.fState = "None"
+            user.save()
+            response.message("Favorite creation canceled")
+            return str(response)
+        else:
+            # got a query
+            favorite = Favorite(keyword=user.fKeyword, query=message_info.body)
+            favorite.save()
+            user.favorites.append(favorite)
+            user.fKeyword = ""
+            user.fState = "None"
+            user.save()
+            response.message("Favorite saved! Keyword: " favorite.keyword + " Query: " + favorite.query)
+            return str(response)
+    else:
+        # default to none
+        if favorite_keyword(message_info.body):
+            user.fState = "Keyword"
+            user.save()
+            response.message("So I see you want to make a favorite, what's the keyword?")
+            return str(response)
+        else:
+            # do literally anything else
+            pass
 
     # load last message and check for favorites...this code is really bad :(
     last_message = None

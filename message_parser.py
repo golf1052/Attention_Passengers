@@ -65,6 +65,10 @@ def get_stations(message_info):
 def favorite_keyword(keyword):
     return keyword == 'favorite' or keyword == 'fav' or keyword == 'fave'
 
+def invalid_favorite(keyword):
+    return keyword == 'favorite' or keyword == 'fav' or keyword == 'fave' or \
+           keyword == 'cancel'
+
 def join_strings(strings):
     output = ''
     for i in range(len(strings)):

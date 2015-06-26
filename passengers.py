@@ -30,9 +30,12 @@ def check_for_user(message_info):
 
 def create_user(message_info):
     messages = []
+    favorites = []
     user = Passenger(
         number=message_info.number, city=message_info.city,
         state=message_info.state, zip=message_info.zip,
-        country=message_info.country, messages=messages)
+        country=message_info.country, messages=messages,
+        favorites=favorites, fState="None",
+        fKeyword="")
     user.save()
     return user
