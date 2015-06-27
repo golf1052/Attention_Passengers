@@ -9,6 +9,7 @@ import mbta
 import subprocess
 from parse_rest.query import QueryResourceDoesNotExist
 import config
+import subprocess
 
 app = Flask(__name__)
 
@@ -94,14 +95,18 @@ def respond():
 
     # parse message to get body
     parsed_body = message_parser.parse_message_body(message_info)
-    if len(user.favorites) > 0:
-        try:
-            favorite_kw = Favorite.Query.get(keyword=parsed_body[-1])
-            if favorite_kw.objectId in user.favorites:
-                query = passengers.MessageInfo(None, None, favorite_kw.query, None, None, None, None, None, None)
-                parsed_body = message_parser.parse_message_body(query)
-        except QueryResourceDoesNotExist:
-            pass
+
+    if parsed_body.return_type == 'other':
+        if len(user.favorites) > 0:
+            try:
+                favorite_kw = Favorite.Query.get(keyword=parsed_body.result[0])
+                if favorite_kw.objectId in user.favorites:
+                    query = passengers.MessageInfo(None, None, favorite_kw.query, None, None, None, None, None, None)
+                    parsed_body = message_parser.parse_message_body(query)
+            except QueryResourceDoesNotExist:
+                pass
+
+    mbta_result = run_request(parsed_body)
 
     # read message and figure out what they need
     alerts_output = []
@@ -118,7 +123,7 @@ def respond():
         alerts_output.extend(mbta.try_get_alerts(station))
     alerts_set = set(alerts_output)
     alerts_output = list(alerts_set)
-    append_messages(final_output, [parsed_body])
+    append_messages(final_output, [mbta_result])
     final_output.extend(alerts_output)
     if len(final_output) > 1:
         for m in final_output[0:-1]:
@@ -154,6 +159,15 @@ def load_last_message(client, sid):
 def send_message(client, to, body):
     client.messages.create(to=to, from_=twilio_number, body=body)
 
+def run_request(parsed_body):
+    if parsed_body.return_type == 'dir':
+        return subprocess.check_output(['python', 'mbta.py', '-d', parsed_body.result[0], parsed_body.result[1]])
+    elif parsed_body.return_type == 'dest':
+        return subprocess.check_output(['python', 'mbta.py', '-s', parsed_body.result[1], parsed_body.result[0]])
+    elif parsed_body.return_type == 'other':
+        return parsed_body.result[0]
+    else:
+        return None
 
 if __name__ == '__main__':
     app.run(debug=True)

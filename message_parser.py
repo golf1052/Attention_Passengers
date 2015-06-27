@@ -1,8 +1,4 @@
-from flask import Flask, request, redirect
-import twilio.twiml
-import subprocess
-
-#Parse the received text body (and the phone number) into something useful...
+# Parse the received text body (and the phone number) into something useful...
 def parse_message_body(message_info):
     lower_case = message_info.body.lower().strip()
     parsed_list = lower_case.split(' ')
@@ -21,13 +17,11 @@ def parse_message_body(message_info):
                 else:
                     to_station += parsed_list[j] + ' '
             return ParserType('dest', [from_station, to_station])
-            # return subprocess.check_output(['python', 'mbta.py', '-s', to_station, from_station])
     if (len(parsed_list) >= 2):
         station = join_strings(parsed_list[0:-1])
         direction = parsed_list[-1]
         return ParserType('dir', [direction, station])
-        # return subprocess.check_output(['python', 'mbta.py', '-d', direction, station])
-    return ParserType('empty', [])
+    return ParserType('other', [lower_case])
 
 def _is_a_to(s):
     s = s.lower().strip()

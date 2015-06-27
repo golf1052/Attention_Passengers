@@ -39,8 +39,9 @@ def test_parser_bad():
     # bad inputs
     message_info = _create_message('rugglesinbound')
     result = message_parser.parse_message_body(message_info)
-    assert result.return_type == 'empty'
-    assert len(result.result) == 0
+    assert result.return_type == 'other'
+    assert len(result.result) == 1
+    assert result.result[0] == 'rugglesinbound'
     message_info = _create_message('inbound what is station')
     result = message_parser.parse_message_body(message_info)
     assert result.return_type == 'dir'
