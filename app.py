@@ -1,11 +1,11 @@
 from flask import Flask, request, redirect, render_template
-from message_parser import *
+import message_parser
 import twilio.twiml
 from twilio.rest import TwilioRestClient
 from parse_rest.connection import register
 import passengers
 from passenger import Message, Passenger, Favorite
-from mbta import *
+import mbta
 import subprocess
 from parse_rest.query import QueryResourceDoesNotExist
 import config
@@ -40,7 +40,7 @@ def respond():
         # currently setting up keyword
         tmpKeyword = message_info.body
         tmpKeyword = tmpKeyword.lower()
-        if invalid_favorite(tmpKeyword):
+        if message_parser.invalid_favorite(tmpKeyword):
             # user is a butt, used an invalid word
             response.message("You can't set " + message_info.body + " as a favorite...")
             return str(response)
@@ -61,7 +61,7 @@ def respond():
         # currently setting up query
         tmpQuery = message_info.body
         tmpQuery = tmpQuery.lower()
-        if invalid_favorite(tmpQuery):
+        if message_parser.invalid_favorite(tmpQuery):
             # user again is a butt
             response.message("You can't set " + message_info.body + " as a query...")
             return str(response)
@@ -83,23 +83,23 @@ def respond():
             return str(response)
     elif user.fState == "None":
         # default to none
-        if favorite_keyword(message_info.body):
+        if message_parser.favorite_keyword(message_info.body):
             user.fState = "Keyword"
             user.save()
-            response.message("So I see you want to make a favorite BITCH, what's the keyword?")
+            response.message("So I see you want to make a favorite, what's the keyword?")
             return str(response)
         else:
             # do literally anything else
             pass
 
     # parse message to get body
-    parsed_body = parse_message_body(message_info)
+    parsed_body = message_parser.parse_message_body(message_info)
     if len(user.favorites) > 0:
         try:
             favorite_kw = Favorite.Query.get(keyword=parsed_body[-1])
             if favorite_kw.objectId in user.favorites:
                 query = passengers.MessageInfo(None, None, favorite_kw.query, None, None, None, None, None, None)
-                parsed_body = parse_message_body(query)
+                parsed_body = message_parser.parse_message_body(query)
         except QueryResourceDoesNotExist:
             pass
 
@@ -113,9 +113,9 @@ def respond():
 
     # send responses
     final_output = []
-    stations_list = get_stations(message_info)
+    stations_list = message_parser.get_stations(message_info)
     for station in stations_list:
-        alerts_output.extend(try_get_alerts(station))
+        alerts_output.extend(mbta.try_get_alerts(station))
     alerts_set = set(alerts_output)
     alerts_output = list(alerts_set)
     append_messages(final_output, [parsed_body])
