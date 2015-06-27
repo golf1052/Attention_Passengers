@@ -1,2 +1,2 @@
 #!/bin/bash
-ngrok/ngrok -config ngrok/.ngrok start hack
+ngrok/ngrok start --config=ngrok/.ngrok hack

@@ -3,12 +3,7 @@ import twilio.twiml
 import subprocess
 
 #Parse the received text body (and the phone number) into something useful...
-def parse_message_body(message_info, setting_favorite):
-    if setting_favorite:
-        if favorite_keyword(message_info.body):
-            return ParserType('alert', ["You can't set " + message_info.body + " as a favorite..."])
-        else:
-            return ParserType('favorite', message_info.body)
+def parse_message_body(message_info):
     lower_case = message_info.body.lower()
     parsed_list = lower_case.split(' ')
     for i in range(len(parsed_list)):
@@ -25,17 +20,11 @@ def parse_message_body(message_info, setting_favorite):
                     to_station += parsed_list[j]
                 else:
                     to_station += parsed_list[j] + ' '
-            return ParserType('messages', subprocess.check_output(['python', 'mbta.py', '-s', to_station, from_station]))
-    if (len(parsed_list) == 1):
-        if favorite_keyword(parsed_list[0]):
-            if not setting_favorite:
-                return ParserType('alert', ['What do you want your favorite to called?'])
-        else:
-            return ParserType('empty', [message_info.body])
+            return subprocess.check_output(['python', 'mbta.py', '-s', to_station, from_station])
     if (len(parsed_list) >= 2):
         station = join_strings(parsed_list[0:-1])
         direction = parsed_list[-1]
-        return ParserType('messages', subprocess.check_output(['python', 'mbta.py', '-d', direction, station]))
+        return subprocess.check_output(['python', 'mbta.py', '-d', direction, station])
 
 def get_stations(message_info):
     lower_case = message_info.body.lower()
@@ -63,9 +52,11 @@ def get_stations(message_info):
         return [station]
 
 def favorite_keyword(keyword):
+    keyword = keyword.lower().strip()
     return keyword == 'favorite' or keyword == 'fav' or keyword == 'fave'
 
 def invalid_favorite(keyword):
+    keyword = keyword.lower().strip()
     return keyword == 'favorite' or keyword == 'fav' or keyword == 'fave' or \
            keyword == 'cancel'
 
@@ -77,8 +68,3 @@ def join_strings(strings):
         else:
             output += strings[i] + ' '
     return output
-
-class ParserType:
-    def __init__(self, return_type, body):
-        self.return_type = return_type
-        self.body = body
