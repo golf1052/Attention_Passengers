@@ -1,6 +1,13 @@
 ngrok/
 config.py
 
+*.suo
+*.user
+[Bb]in/
+[Oo]bj/
+.vs/
+*.pyproj
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

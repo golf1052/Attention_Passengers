@@ -1,4 +1,4 @@
-# Parse the received text body (and the phone number) into something useful...
+﻿# Parse the received text body (and the phone number) into something useful...
 def parse_message_body(message_info):
     lower_case = message_info.body.lower().strip()
     parsed_list = lower_case.split(' ')
@@ -28,10 +28,10 @@ def _is_a_to(s):
     return s == 'to' or s == '-' or s == 'x' or s == 't' or s == '2'
 
 def get_stations(message_info):
-    lower_case = message_info.body.lower()
+    lower_case = message_info.body.lower().strip()
     parsed_list = lower_case.split(' ')
     for i in range(len(parsed_list)):
-        if parsed_list[i] == 'to' or parsed_list[i] == '-' or parsed_list[i] == 'x' or parsed_list[i] == 't' or parsed_list[i] == '2':
+        if _is_a_to(parsed_list[i]):
             from_station = ''
             to_station = ''
             for j in range(i):
@@ -59,7 +59,7 @@ def favorite_keyword(keyword):
 def invalid_favorite(keyword):
     keyword = keyword.lower().strip()
     return keyword == 'favorite' or keyword == 'fav' or keyword == 'fave' or \
-           keyword == 'cancel'
+           keyword == 'cancel' or keyword == '12' or keyword == '24'
 
 def join_strings(strings):
     output = ''

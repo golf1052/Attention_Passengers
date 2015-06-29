@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template
+﻿from flask import Flask, request, redirect, render_template
 import message_parser
 import twilio.twiml
 from twilio.rest import TwilioRestClient
@@ -35,6 +35,17 @@ def respond():
 
     # get user from parse
     user = passengers.check_for_user(message_info)
+
+    if message_info.body == '12':
+        user.timeFormat = '12h'
+        user.save()
+        response.message("Time format changed to 12 hour")
+        return str(response)
+    elif message_info.body == '24':
+        user.timeFormat = '24h'
+        user.save()
+        response.message("Time format changed to 24 hour")
+        return str(response)
 
     print user.fState
     if user.fState == "Keyword":
@@ -106,7 +117,7 @@ def respond():
             except QueryResourceDoesNotExist:
                 pass
 
-    mbta_result = run_request(parsed_body)
+    mbta_result = run_request(parsed_body, user.timeFormat)
 
     # read message and figure out what they need
     alerts_output = []
@@ -120,6 +131,7 @@ def respond():
     final_output = []
     stations_list = message_parser.get_stations(message_info)
     for station in stations_list:
+        station = mbta.shorten_names(station)
         alerts_output.extend(mbta.try_get_alerts(station))
     alerts_set = set(alerts_output)
     alerts_output = list(alerts_set)
@@ -159,11 +171,11 @@ def load_last_message(client, sid):
 def send_message(client, to, body):
     client.messages.create(to=to, from_=twilio_number, body=body)
 
-def run_request(parsed_body):
+def run_request(parsed_body, time_format='12h'):
     if parsed_body.return_type == 'dir':
-        return subprocess.check_output(['python', 'mbta.py', '-d', parsed_body.result[0], parsed_body.result[1]])
+        return subprocess.check_output(['python', 'mbta.py', '-d', parsed_body.result[0], parsed_body.result[1], time_format])
     elif parsed_body.return_type == 'dest':
-        return subprocess.check_output(['python', 'mbta.py', '-s', parsed_body.result[1], parsed_body.result[0]])
+        return subprocess.check_output(['python', 'mbta.py', '-s', parsed_body.result[1], parsed_body.result[0], time_format])
     elif parsed_body.return_type == 'other':
         return parsed_body.result[0]
     else:

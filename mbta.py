@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import requests
 import json
 import datetime
@@ -15,6 +15,8 @@ stops_red_line_braintree = None
 stops_orange_line = None
 
 response_title = ""
+
+time_format = ''
 
 def _load_json_files():
     global loaded_files
@@ -38,6 +40,7 @@ def _parse_args():
     dest = parser.add_mutually_exclusive_group(required=True)
 
     parser.add_argument('start', help='Station to get data from')
+    parser.add_argument('time', help='Time format desired')
     dest.add_argument('-d', '--direction', help='Direction (inbound or outbound)')
     dest.add_argument('-s', '--dest', help='Destination Station')
 
@@ -63,7 +66,7 @@ def _try_get_stop_id(station):
 ####################
 # MBTA API CALLS
 ####################
-#Get schedule by station
+# Get schedule by station
 def _get_schedule_by_stop(train_id, max_trips=3):
     payload = {'max_time': 600, 'stop': train_id, 'max_trips': max_trips}
     data = _send_request('schedulebystop', payload)
@@ -247,13 +250,13 @@ def _get_departures_by_dir(from_station, direction):
                     title = response_title
                     response = response + "\n" + title
                     for time in departures[key]:
-                        time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+                        time_str = datetime.datetime.fromtimestamp(time).strftime(time_format)
                         response = response + "\n" + time_str
             else:
                 for key in departures:
                     response = response + response_title
                     for time in departures[key]:
-                        time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+                        time_str = datetime.datetime.fromtimestamp(time).strftime(time_format)
                         response = response + "\n" + time_str
 
     response_list.append(response)
@@ -391,7 +394,7 @@ def _get_departures_by_dest(from_station, dest):
         for key in departures['departures']:
             for idx, time in enumerate(departures['departures'][key]):
                 print idx
-                time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+                time_str = datetime.datetime.fromtimestamp(time).strftime(time_format)
                 response = response + "\n" + _transfer(time_str, departures['trip_ids'][idx], trans_blob, dest_blob)
 
     else:
@@ -402,13 +405,13 @@ def _get_departures_by_dest(from_station, dest):
                 title = response_title
                 response = response + "\n" + title
                 for time in departures[key]:
-                    time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+                    time_str = datetime.datetime.fromtimestamp(time).strftime(time_format)
                     response = response + "\n" + time_str
         else:
             for key in departures:
                 response = response + response_title
                 for time in departures[key]:
-                    time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+                    time_str = datetime.datetime.fromtimestamp(time).strftime(time_format)
                     response = response + "\n" + time_str
 
     ##print response
@@ -429,7 +432,7 @@ def _transfer(response, trip_id, trans_station_blob, dest_blob):
 
     for key in departures:
         for time in departures[key]:
-            time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
+            time_str = datetime.datetime.fromtimestamp(time).strftime(time_format)
             response = response + " | " + time_str
 
     return response
@@ -446,17 +449,28 @@ def _get_arrival_time(trip_id, station_blob, line):
 
 
 def main():
+    global time_format
     args = _parse_args()
 
-    from_station = args.start
+    if args.time == '24h':
+        time_format = '%H:%M'
+    else:
+        time_format = '%I:%M %p'
+
+    from_station = shorten_names(args.start)
     #station_blob = _get_station_blob(_get_station_id('dtx'))
     #print json.dumps(station_blob, indent=4)
 
     if args.direction:
-        departures = _get_departures_by_dir(from_station, args.direction)
+        departures = _get_departures_by_dir(from_station, shorten_names(args.direction))
 
     else:
-        departures = _get_departures_by_dest(from_station, args.dest)
+        departures = _get_departures_by_dest(from_station, shorten_names(args.dest))
+
+def shorten_names(word):
+    return word.replace('street', 'st').replace('str', 'st').replace('avenue', 'ave') \
+               .replace('square', 'sq').replace('road', 'rd').replace('center', 'ctr') \
+               .replace('circle', 'cir')
 
 if __name__ == '__main__':
     main()

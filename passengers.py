@@ -1,10 +1,10 @@
-from passenger import Passenger
+﻿from passenger import Passenger
 
 class MessageInfo:
     def __init__(self, sid, number, body, num_media, city, state, zip, country, status):
         self.sid = sid
         self.number = number
-        self.body = body
+        self.body = body.lower().strip()
         self.num_media = num_media
         self.city = city
         self.state = state
@@ -36,6 +36,6 @@ def create_user(message_info):
         state=message_info.state, zip=message_info.zip,
         country=message_info.country, messages=messages,
         favorites=favorites, fState="None",
-        fKeyword="")
+        fKeyword="", timeFormat="12h")
     user.save()
     return user
