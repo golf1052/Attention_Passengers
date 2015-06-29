@@ -46,14 +46,11 @@ def _parse_args():
 ###
 # Helper methods
 ###
-def send_request(endpoint, parameters):
+def _send_request(endpoint, parameters):
     parameters['api_key'] = dev_api_key
     parameters['format'] = 'json'
     base_url = 'http://realtime.mbta.com/developer/api/v2/'
     r = requests.get(base_url + endpoint, params=parameters)
-
-    #print r.url
-
     return r.json()
 
 def _try_get_stop_id(station):
@@ -67,9 +64,9 @@ def _try_get_stop_id(station):
 # MBTA API CALLS
 ####################
 #Get schedule by station
-def _get_departures_by_stop(train_id):
-    payload = {'max_time': 600, 'stop': train_id}
-    data = send_request('schedulebystop', payload)
+def _get_schedule_by_stop(train_id, max_trips=3):
+    payload = {'max_time': 600, 'stop': train_id, 'max_trips': max_trips}
+    data = _send_request('schedulebystop', payload)
     return data
 
 ###
@@ -77,12 +74,12 @@ def _get_departures_by_stop(train_id):
 ###
 def _get_alerts_by_stop(stop):
     parameters = {'stop': stop}
-    data = send_request('alertsbystop', parameters)
+    data = _send_request('alertsbystop', parameters)
     return data
 
 def _get_alerts_by_route(route):
     parameters = {'route': route}
-    data = send_request('alertsbyroute', parameters)
+    data = _send_request('alertsbyroute', parameters)
     return data
 
 def try_get_alerts(input):
@@ -138,7 +135,7 @@ def try_get_alerts(input):
 # Parse the next X departures for a specific train(inbound/outbound) at a station
 def _next_departures(train_id, no_trains=3, start_time=0):
     global response_title
-    schedule = _get_departures_by_stop(train_id)
+    schedule = _get_schedule_by_stop(train_id, no_trains)
 
     response_title = response_title + schedule['stop_name']
 
@@ -147,26 +144,20 @@ def _next_departures(train_id, no_trains=3, start_time=0):
 
     for mode in schedule['mode']:
         if mode['mode_name'] == "Subway":
-
             for route in mode['route']:
-
                 route_name = route['route_id']
                 departures.setdefault(route_name, [])
-
                 for direction in route['direction']:
                         for trip in direction['trip']:
-                            while len(departures[route_name]) < no_trains:
-                                if start_time > 0:
-                                    if trip['sch_arr_dt'] < start_time:
-                                        continue
-                                    else:
-                                        departures[route_name].append(int(trip['sch_arr_dt']))
-                                        departure_ids.append(trip['trip_id'])
+                            if start_time > 0:
+                                if trip['sch_arr_dt'] < start_time:
+                                    continue
                                 else:
                                     departures[route_name].append(int(trip['sch_arr_dt']))
                                     departure_ids.append(trip['trip_id'])
-
-
+                            else:
+                                departures[route_name].append(int(trip['sch_arr_dt']))
+                                departure_ids.append(trip['trip_id'])
         break #don't look past subways
     deps_dict = {"departures": departures, "trip_ids": departure_ids}
     return deps_dict
@@ -253,7 +244,7 @@ def _get_departures_by_dir(from_station, direction):
 
             if len(departures) > 1 :
                 for key in departures:
-                    title = response_title + " (" + _get_title(key) + ")"
+                    title = response_title
                     response = response + "\n" + title
                     for time in departures[key]:
                         time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
@@ -268,13 +259,6 @@ def _get_departures_by_dir(from_station, direction):
     response_list.append(response)
     print response
     return response_list
-
-def _get_title(route_id):
-    if route_id == '931_':
-        return "Ashmont"
-    elif route_id == '933_':
-        return "Braintree"
-
 
 def _get_same_line(x, y):
 
@@ -415,7 +399,7 @@ def _get_departures_by_dest(from_station, dest):
 
         if len(departures) > 1 :
             for key in departures:
-                title = response_title + " (" + _get_title(key) + ")"
+                title = response_title
                 response = response + "\n" + title
                 for time in departures[key]:
                     time_str = datetime.datetime.fromtimestamp(time).strftime('%H:%M')
@@ -454,7 +438,7 @@ def _transfer(response, trip_id, trans_station_blob, dest_blob):
 def _get_arrival_time(trip_id, station_blob, line):
 
     index = _get_station_index(station_blob, line)
-    trip = send_request('schedulebytrip', {'trip':trip_id})
+    trip = _send_request('schedulebytrip', {'trip':trip_id})
 
     for stop in trip['stop']:
         if stop['stop_sequence'] == index:
