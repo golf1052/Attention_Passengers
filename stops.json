@@ -1,16 +1,6 @@
 {
-	"alewife": {
-		"line": "Red",
-		"station": "place-alfcl",
-		"inbound": 70061,
-		"outbound": 70061
-	},
-	"davis": {
-		"line": "Red",
-		"station": "place-davis",
-		"inbound": 70063,
-		"outbound": 70064
-	},
+	"alewife": "place-alfcl",
+	"davis": "place-davis",
 	"porter sq": "place-portr",
 	"porter": "place-portr",
 	"harvard sq": "place-harsq",
@@ -119,5 +109,16 @@
 	"mission park": "place-mispk",
 	"riverway": "place-rvrwy",
 	"back of the hill": "place-bckhl",
-	"heath st": "place-hsmnl"
+	"heath st": "place-hsmnl",
+	"wonderland": "place-wondl",
+	"revere beach": "place-rbmnl",
+	"revere": "place-rbmnl",
+	"beachmont": "place-bmmnl",
+	"suffolk downs": "place-sdmnl",
+	"orient heights": "place-orhte",
+	"wood island": "place-wimnl",
+	"airport": "place-aport",
+	"maverick": "place-mvbcl",
+	"aquarium": "place-aqucl",
+	"bowdoin": "place-bomnl"
 }
