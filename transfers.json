@@ -26,6 +26,11 @@
 				"line": "Orange",
 				"station": "place-dwnxg",
 				"inbound": "true"
+			},
+			{
+				"line": "Mattapan",
+				"station": "place-asmnl",
+				"inbound": "false"
 			}
 		]
 	},

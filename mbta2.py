@@ -142,8 +142,9 @@ class MbtaO:
 
 def shorten_names(word):
     return word.replace('street', 'st').replace('str', 'st').replace('avenue', 'ave') \
-               .replace('square', 'sq').replace('road', 'rd').replace('center', 'ctr') \
-               .replace('circle', 'cir')
+               .replace('square', 'sq').replace('center', 'ctr') \
+               .replace('circle', 'cir').replace('centre', 'ctr') \
+               .replace('corner', 'cor').replace('village', 'vlg')
 
 def _get_station_id(station):
     with open ('stops.json') as stops_file:
