@@ -183,4 +183,4 @@ def run_request(parsed_body, time_format='12h'):
         return None
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5432, debug=False)
