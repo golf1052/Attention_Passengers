@@ -17,25 +17,3 @@ def load_message_info(message):
                        message.body.lower(), message.num_media,
                        None, None, None, None,
                        message.status)
-
-def check_for_user(message_info):
-    results = Passenger.Query.filter(number=message_info.number)
-    if len(results) == 0:
-        return create_user(message_info)
-    else:
-        if len(results) == 1:
-            return results[0]
-        else:
-            return None
-
-def create_user(message_info):
-    messages = []
-    favorites = []
-    user = Passenger(
-        number=message_info.number, city=message_info.city,
-        state=message_info.state, zip=message_info.zip,
-        country=message_info.country, messages=messages,
-        favorites=favorites, fState="None",
-        fKeyword="", timeFormat="12h")
-    user.save()
-    return user
