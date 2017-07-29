@@ -1,7 +1,7 @@
 ﻿from flask import Flask, request, redirect, render_template
 import message_parser
-import twilio.twiml
-from twilio.rest import TwilioRestClient
+from twilio.rest import Client
+from twilio.twiml.messaging_response import MessagingResponse
 from parse_rest.connection import register
 import passengers
 from passenger import Message, Passenger, Favorite
@@ -21,8 +21,8 @@ twilio_number = config.twilio_number
 @app.route('/', methods=['GET', 'POST'])
 def respond():
     # load api's
-    client = TwilioRestClient(account_sid, auth_token)
-    response = twilio.twiml.Response()
+    client = Client(account_sid, auth_token)
+    response = MessagingResponse()
 
     # load message
     message_info = load_message(request)
