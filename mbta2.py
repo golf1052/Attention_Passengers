@@ -3,15 +3,15 @@ import requests
 import json
 import datetime
 import time
-import config
 import copy
 
-dev_api_key = 'wX9NwuHnZU2ToO7GmGR9uw'
-real_api_key = config.real_api_key
+mbta_api_key = None
 
 class MbtaO:
-    def __init__(self):
+    def __init__(self, api_key):
         self.time_format = ''
+        global mbta_api_key
+        mbta_api_key = api_key
 
         # json files
         self.file_transfers = None
@@ -185,7 +185,7 @@ def _create_response_message(transfer, trip, start_time, total_time, message):
 # MBTA request helper methods
 
 def _send_request(endpoint, parameters):
-    parameters['api_key'] = real_api_key
+    parameters['api_key'] = mbta_api_key
     parameters['format'] = 'json'
     base_url = 'http://realtime.mbta.com/developer/api/v2/'
     r = requests.get(base_url + endpoint, params=parameters)

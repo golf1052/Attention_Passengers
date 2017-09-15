@@ -1,6 +1,7 @@
 ngrok/
 config.py
 .vscode/
+.env
 
 *.suo
 *.user

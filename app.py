@@ -1,24 +1,42 @@
-﻿from flask import Flask, request, redirect, render_template
+﻿import os
+import sys
+from flask import Flask, request, redirect, send_from_directory
 import message_parser
 from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
-from parse_rest.connection import register
 import passengers
 from passenger import Message, Passenger, Favorite
 import mbta
 import mbta2
 import subprocess
-from parse_rest.query import QueryResourceDoesNotExist
-import config
-import subprocess
 
 app = Flask(__name__)
 
-account_sid = config.account_sid
-auth_token = config.auth_token
-twilio_number = config.twilio_number
+@app.route('/', methods=['GET'])
+def index():
+    return send_from_directory('templates', 'index.html')
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/js/<path:filename>', methods=['GET'])
+def serve_js(filename):
+    return send_from_directory('templates/js', filename)
+
+@app.route('/css/<path:filename>', methods=['GET'])
+def serve_css(filename):
+    return send_from_directory('templates/css', filename)
+
+@app.route('/font-awesome/<path:filename>', methods=['GET'])
+def serve_font_awesome(filename):
+    return send_from_directory('templates/font-awesome', filename)
+
+@app.route('/img/<path:filename>', methods=['GET'])
+def serve_img(filename):
+    return send_from_directory('templates/img', filename)
+
+@app.route('/media/<path:filename>', methods=['GET'])
+def serve_media(filename):
+    return send_from_directory('templates/media', filename)
+
+@app.route('/', methods=['POST'])
 def respond():
     # load api's
     client = Client(account_sid, auth_token)
@@ -81,12 +99,25 @@ def run_request(parsed_body, time_format='12h'):
     if parsed_body.return_type == 'dir':
         pass
     elif parsed_body.return_type == 'dest':
-        m = mbta2.MbtaO()
+        m = mbta2.MbtaO(mbta_api_key)
         return m.get_from_to_data(parsed_body.result[0], parsed_body.result[1], time_format)
     elif parsed_body.return_type == 'other':
-        return parsed_body.result[0]
+        # this should probably return an error? right now it just returns what was sent in
+        return parsed_body.result
     else:
         return None
 
 if __name__ == '__main__':
+    if not os.environ.get('TWILIO_ACCOUNT_SID'):
+        sys.exit('TWILIO_ACCOUNT_SID not set')
+    if not os.environ.get('TWILIO_AUTH_TOKEN'):
+        sys.exit('TWILIO_AUTH_TOKEN not set')
+    if not os.environ.get('TWILIO_NUMBER'):
+        sys.exit('TWILIO_NUMBER not set')
+
+    account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+    auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+    twilio_number = os.environ.get('TWILIO_NUMBER')
+    mbta_api_key = os.environ.get('MBTA_API_KEY', 'wX9NwuHnZU2ToO7GmGR9uw')
+
     app.run(port=5432, debug=False)
