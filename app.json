@@ -17,7 +17,7 @@
         "MBTA_API_KEY": {
             "description": "Your MBTA API key",
             "required": false,
-            "value": "mtsJb1pTy0-Z6Ciu-wYl5w"
+            "value": "wX9NwuHnZU2ToO7GmGR9uw"
         }
     }
 }
