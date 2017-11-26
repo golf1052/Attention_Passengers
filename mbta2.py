@@ -219,6 +219,61 @@ def _retrieve_schedule_by_trip(trip, time=None):
     data = _send_request('schedulebytrip', payload)
     return data
 
+def _get_alerts_by_stop(stop):
+    parameters = {'stop': stop}
+    data = _send_request('alertsbystop', parameters)
+    return data
+
+def _get_alerts_by_route(route):
+    parameters = {'route': route}
+    data = _send_request('alertsbyroute', parameters)
+    return data
+
+def try_get_alerts(input):
+    stop = _get_station_id(input)
+    return_messages = []
+    if stop == None:
+        return_messages.append('Station not found')
+    else:
+        alerts = _get_alerts_by_stop(stop)
+        if len(alerts['alerts']) == 0:
+            #return_messages.append('No alerts for this station')
+            return return_messages
+        else:
+            active_alerts = []
+            for alert in alerts['alerts']:
+                # filter out bus alerts if alert only affects busses
+                bus_alert = False
+                for service in alert['affected_services']['services']:
+                    if service['mode_name'] == 'Bus':
+                        bus_alert = True
+                    elif bus_alert:
+                        bus_alert = False
+                        break
+                if bus_alert:
+                    continue
+                # filter out alerts that don't apply to today
+                current_time = long(time.time())
+                in_period = True
+                for period in alert['effect_periods']:
+                    if period['effect_end'] != '':
+                        if current_time < long(period['effect_start']) or current_time > long(period['effect_end']):
+                            in_period = False
+                    else:
+                        if current_time < period['effect_start']:
+                            in_period = False
+                if not in_period:
+                    continue
+                active_alerts.append(alert)
+            if len(active_alerts) == 0:
+                #return_messages.append('No alerts for this station')
+                pass
+            else:
+                for alert in active_alerts:
+                    alert_message = 'Alert! ' + alert['short_header_text']
+                    return_messages.append(alert_message)
+    return return_messages
+
 # classes
 class TransferChain:
     def __init__(self):

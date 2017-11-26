@@ -6,7 +6,6 @@ from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
 import passengers
 from passenger import Message, Passenger, Favorite
-import mbta
 import mbta2
 import subprocess
 
@@ -61,8 +60,8 @@ def respond():
     final_output = []
     stations_list = message_parser.get_stations(message_info)
     for station in stations_list:
-        station = mbta.shorten_names(station)
-        alerts_output.extend(mbta.try_get_alerts(station))
+        station = mbta2.shorten_names(station)
+        alerts_output.extend(mbta2.try_get_alerts(station))
     alerts_set = set(alerts_output)
     alerts_output = list(alerts_set)
     append_messages(final_output, mbta_result)
