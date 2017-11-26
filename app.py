@@ -120,4 +120,4 @@ if __name__ == '__main__':
     twilio_number = os.environ.get('TWILIO_NUMBER')
     mbta_api_key = os.environ.get('MBTA_API_KEY', 'wX9NwuHnZU2ToO7GmGR9uw')
 
-    app.run(port=5432, debug=False)
+    app.run(port=5432, debug=True)
