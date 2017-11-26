@@ -3,10 +3,8 @@ import requests
 import json
 import datetime
 import time
-import config
 
 dev_api_key = 'wX9NwuHnZU2ToO7GmGR9uw'
-real_api_key = config.real_api_key
 loaded_files = False
 stops = None
 stops_red_line_ashmont = None
@@ -50,7 +48,7 @@ def _parse_args():
 # Helper methods
 ###
 def _send_request(endpoint, parameters):
-    parameters['api_key'] = real_api_key
+    parameters['api_key'] = dev_api_key
     parameters['format'] = 'json'
     base_url = 'http://realtime.mbta.com/developer/api/v2/'
     r = requests.get(base_url + endpoint, params=parameters)
