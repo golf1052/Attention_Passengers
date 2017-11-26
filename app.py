@@ -121,4 +121,4 @@ if __name__ == '__main__':
     mbta_api_key = os.environ.get('MBTA_API_KEY', 'wX9NwuHnZU2ToO7GmGR9uw')
 
 
-    app.run(port=os.getenv('PORT', 5432), debug=True)
+    app.run(port=int(os.getenv('PORT', 5432)), debug=True)
